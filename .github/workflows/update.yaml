@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.14'
           cache: 'pip'
-      - run: pip install -U twitch-archiver nltk
+      - run: pip install -r requirements.txt
       - run: source scripts/sync.sh
       - run: python scripts/process.py
       - id: diff
