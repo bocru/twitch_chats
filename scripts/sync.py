@@ -11,6 +11,7 @@ from nltk.corpus import stopwords
 from nltk.probability import FreqDist
 
 GZ_PATH = which("gzip")
+ARCHIVER_PATH = which("twitch-archiver")
 WORD_BREAK = re.compile("[^a-z]*(?:\\s+|$)[({['\"]*")
 REPROCESS = False
 
@@ -90,6 +91,24 @@ def process_vod(path: str):
 
 
 if __name__ == "__main__":
+
+    with open("scripts/channels.txt", encoding="utf-8") as file:
+        channels = file.readlines()
+        for channel in channels:
+            subprocess.run(
+                [
+                    ARCHIVER_PATH,
+                    "-c",
+                    channel.strip(),
+                    "-C",
+                    "-a",
+                    "-d",
+                    "data",
+                    "-I",
+                    "scripts/record",
+                ],
+                check=False,
+            )
 
     download("stopwords")
     exclude = list(stopwords.words("english"))

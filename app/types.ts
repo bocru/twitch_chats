@@ -13,6 +13,7 @@ export type User = {
   color: string
   terms: Terms
   nMessages: number
+  isBot: boolean
 }
 export type ChatData = {
   chats: {[key: string]: User}
@@ -22,5 +23,30 @@ export type ChatData = {
     description: {} | string
     created_at: string
     duration: number
+    date?: string
   }
 }
+
+export type ProcessedData = {
+  data: ChatData[]
+  dates: Map<string, number>
+  users: {[key: string]: Uint16Array}
+  terms: {[key: string]: Uint16Array}
+  userTerms: {[key: string]: {[key: string]: number}}
+  termUsers: {[key: string]: {[key: string]: number}}
+}
+
+export type Options = {
+  channel: string
+  show: string
+  users: string[]
+  terms: string[]
+  userTrends: false
+  gridSize: number
+  keepBots: boolean
+}
+
+export type OptsAction =
+  | {key: 'show'; value: string}
+  | {key: 'users' | 'terms'; value: string[]}
+  | {key: 'userTrends' | 'keepBots'; value: boolean}

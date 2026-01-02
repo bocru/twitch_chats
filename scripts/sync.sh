@@ -1,1 +1,0 @@
-twitch-archiver -c scripts/channels.txt -f -C -a -d data -I scripts/record

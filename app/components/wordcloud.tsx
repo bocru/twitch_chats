@@ -1,21 +1,18 @@
-import {use, init, getInstanceByDom} from 'echarts/core'
-import {ToolboxComponent} from 'echarts/components'
+import {init, getInstanceByDom} from 'echarts/core'
 import {Box} from '@mui/material'
 import {useEffect, useRef, useState} from 'react'
-import {CanvasRenderer} from 'echarts/renderers'
-import type {ChatData} from '../types'
+import type {ChatData, Options} from '../types'
 
 function byValue(a: {value: number}, b: {value: number}) {
   return b.value - a.value
 }
 
-export default function WordCloud({data}: {data: ChatData[]}) {
+export default function WordCloud({options, data}: {options: Options; data: ChatData[]}) {
   const container = useRef<HTMLDivElement>(null)
   const [terms, setTerms] = useState<{name: string; value: number}[]>([])
   useEffect(() => {
-    use([ToolboxComponent, CanvasRenderer])
     if ('undefined' !== typeof window) {
-      const chart = container.current ? init(container.current, 'dark', {renderer: 'svg'}) : null
+      const chart = container.current ? init(container.current, 'dark') : null
       const resize = () => chart && chart.resize()
       window.addEventListener('resize', resize)
       return () => {
@@ -31,15 +28,7 @@ export default function WordCloud({data}: {data: ChatData[]}) {
     data.forEach(({chats}) => {
       Object.keys(chats).forEach(userName => {
         const user = chats[userName]
-        let is_bot = userName == 'streamelements'
-        if (!is_bot) {
-          user.badges.forEach(badge => {
-            if (badge.setID == 'bot-badge') {
-              is_bot = true
-            }
-          })
-        }
-        if (!is_bot) {
+        if (options.keepBots || !user.isBot) {
           Object.keys(user.terms).forEach(term => {
             if (term in termCounts) {
               termCounts[term] += user.terms[term]
@@ -57,14 +46,14 @@ export default function WordCloud({data}: {data: ChatData[]}) {
         if (range[0] > value) range[0] = value
         if (range[1] < value) range[1] = value
         return {
-          name: term,
+          name: term.includes(':') ? term.split(':')[0] : term,
           value,
         }
       })
       .sort(byValue)
       .filter((_, i) => i < 700)
     setTerms(terms)
-  }, [data])
+  }, [data, options.keepBots])
   useEffect(() => {
     if (container.current) {
       const chart = getInstanceByDom(container.current)
@@ -82,12 +71,12 @@ export default function WordCloud({data}: {data: ChatData[]}) {
                 top: 'center',
                 width: '100%',
                 height: '100%',
-                sizeRange: [10, 300],
-                rotationRange: [0, 90],
+                sizeRange: [14, 500],
+                rotationRange: [90, 0],
                 rotationStep: 90,
-                gridSize: 6,
-                drawOutOfBound: false,
-                shrinkToFit: false,
+                gridSize: options.gridSize,
+                drawOutOfBound: true,
+                shrinkToFit: true,
                 layoutAnimation: false,
                 textStyle: {
                   fontFamily: 'sans-serif',
@@ -106,6 +95,6 @@ export default function WordCloud({data}: {data: ChatData[]}) {
         )
       }
     }
-  }, [terms])
+  }, [terms, options.gridSize])
   return <Box ref={container} sx={{width: '100%', height: '100%', minHeight: '10px'}} />
 }

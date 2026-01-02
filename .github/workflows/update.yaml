@@ -15,8 +15,7 @@ jobs:
           python-version: '3.14'
           cache: 'pip'
       - run: pip install -r requirements.txt
-      - run: source scripts/sync.sh
-      - run: python scripts/process.py
+      - run: python scripts/sync.py
       - id: diff
         run: |
           if git diff --exit-code; then
