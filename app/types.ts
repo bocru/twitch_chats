@@ -44,9 +44,10 @@ export type Options = {
   userTrends: false
   gridSize: number
   keepBots: boolean
+  keepAts: boolean
 }
 
 export type OptsAction =
-  | {key: 'show'; value: string}
+  | {key: 'show' | 'gridSize'; value: string}
   | {key: 'users' | 'terms'; value: string[]}
-  | {key: 'userTrends' | 'keepBots'; value: boolean}
+  | {key: 'userTrends' | 'keepBots' | 'keepAts'; value: boolean}

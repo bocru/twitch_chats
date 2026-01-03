@@ -14,7 +14,7 @@ export function formatDate(date: Date) {
   return `${date.getFullYear().toString().substring(2, 4)}/${dateFormatter(date)}`
 }
 
-const botUsers = {streamelements: true, sery_bot: true, nightbot: true, moobot: true}
+export const botUsers: {[key: string]: boolean} = {streamelements: true, sery_bot: true, nightbot: true, moobot: true}
 
 export function Data() {
   const [data, setData] = useState<ProcessedData>()
@@ -74,6 +74,7 @@ export function Data() {
                     }
                   })
                 }
+                if (d.isBot) botUsers[user] = true
                 if (!(user in users)) users[user] = new Uint16Array(nDates).fill(0)
                 users[user][dateIndex] += d.nMessages
                 const u = d.terms
