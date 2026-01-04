@@ -1,54 +1,68 @@
 import {init, getInstanceByDom} from 'echarts/core'
 import {type LineSeriesOption} from 'echarts/charts'
 import {Box} from '@mui/material'
-import {useEffect, useMemo, useRef} from 'react'
-import type {ChatData, Options, ProcessedData} from '../types'
+import {useContext, useEffect, useMemo, useRef} from 'react'
+import type {ChatData, DateEntry, ProcessedData} from '../types'
 import type {LineEndLabelOption} from 'echarts/types/src/chart/line/LineSeries.js'
+import {palettes} from './palettes'
+import {DataContext, OptionContext} from './view'
 
 const endLabel: LineEndLabelOption = {
   show: true,
   formatter: ({seriesName}: {seriesName?: string}) => seriesName || '',
 }
 
-function extractFreqs(selectUsers: string[], selectTerms: string[], data: ChatData[], dates: Map<string, number>) {
-  const terms: {[key: string]: Uint16Array} = {}
-  const users: {[key: string]: Uint16Array} = {}
+function extractFreqs(
+  selectUsers: string[],
+  selectTerms: string[],
+  data: ChatData[],
+  dates: Map<string, DateEntry>,
+  toPercent: boolean
+) {
+  const terms: {[key: string]: number[]} = {}
+  const users: {[key: string]: number[]} = {}
   const nDates = dates.size
   selectTerms.forEach(term => {
-    terms[term] = new Uint16Array(nDates).fill(0)
+    terms[term] = Array.from({length: nDates}, () => 0)
   })
   selectUsers.forEach(user => {
-    users[user] = new Uint16Array(nDates).fill(0)
+    users[user] = Array.from({length: nDates}, () => 0)
   })
   const filterTerms = !!selectTerms.length
   const filterUsers = !!selectUsers.length
   data.forEach(s => {
-    const dateIndex = dates.get(s.stream.date as string) as number
+    const {words, messages, index} = dates.get(s.stream.date as string) as DateEntry
     const chats = s.chats
     Object.keys(chats).forEach(user => {
       if (!filterUsers || user in users) {
         const d = chats[user]
-        if (!(user in users)) users[user] = new Uint16Array(nDates).fill(0)
-        if (!filterTerms) users[user][dateIndex] += d.nMessages
+        if (!(user in users)) users[user] = Array.from({length: nDates}, () => 0)
+        if (!filterTerms) users[user][index] += d.nMessages
         const u = d.terms
         Object.keys(u).forEach(term => {
           if (filterTerms) {
             if (term in terms) {
-              terms[term][dateIndex] += u[term]
-              users[user][dateIndex] += u[term]
+              terms[term][index] += u[term]
+              users[user][index] += u[term]
             }
           } else {
-            if (!(term in terms)) terms[term] = new Uint16Array(nDates).fill(0)
-            terms[term][dateIndex] += u[term]
+            if (!(term in terms)) terms[term] = Array.from({length: nDates}, () => 0)
+            terms[term][index] += u[term]
           }
         })
       }
     })
+    if (toPercent) {
+      Object.keys(terms).forEach(term => (terms[term][index] = (terms[term][index] / words) * 100))
+      Object.keys(users).forEach(user => (users[user][index] = (users[user][index] / messages) * 100))
+    }
   })
   return {users, terms}
 }
 
-export function Trends({data, options}: {data: ProcessedData; options: Options}) {
+export function Trends() {
+  const data = useContext(DataContext) as ProcessedData
+  const options = useContext(OptionContext)
   const container = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if ('undefined' !== typeof window) {
@@ -64,25 +78,34 @@ export function Trends({data, options}: {data: ProcessedData; options: Options})
   const selected = options[options.userTrends ? 'users' : 'terms']
   const filteredData = useMemo(() => {
     return options.users.length || options.terms.length
-      ? extractFreqs(options.users, options.terms, data.data, data.dates)
+      ? extractFreqs(options.users, options.terms, data.data, data.dates, options.toPercent)
       : {users: data.users, terms: data.terms}
-  }, [options.users, options.terms])
+  }, [options.users, options.terms, options.toPercent])
   const trendData = useMemo(() => {
     const d = filteredData[options.userTrends ? 'users' : 'terms']
     const series: LineSeriesOption[] = []
-    selected.forEach(term => {
+    const nSelected = selected.length
+    const palette = palettes[options.palette]
+    const nColors = palette.length
+    const getColor = options.reversePalette
+      ? (freq: number) => palette[Math.round((1 - freq) * nColors)]
+      : (freq: number) => palette[Math.round(freq * nColors)]
+    selected.forEach((term, i) => {
       const values = d[term]
       if (values) {
+        const color = getColor(i / nSelected)
         series.push({
           type: 'line',
           name: term,
           endLabel,
           data: [...values],
+          lineStyle: {color},
+          itemStyle: {color},
         })
       }
     })
     return {dates: data.dates, series}
-  }, [selected, options.userTrends, filteredData])
+  }, [selected, options.userTrends, filteredData, options.palette, options.reversePalette])
 
   useEffect(() => {
     if (container.current) {
@@ -111,7 +134,12 @@ export function Trends({data, options}: {data: ProcessedData; options: Options})
               },
               yAxis: {
                 type: 'value',
-                name: options.userTrends && !options.terms.length ? 'Messages Sent' : 'Term Count',
+                name:
+                  options.userTrends && !options.terms.length
+                    ? (options.toPercent ? 'Percent of ' : '') + 'Messages Sent'
+                    : options.toPercent
+                    ? 'Percent of Words Used'
+                    : 'Term Count',
                 nameLocation: 'center',
                 nameRotate: 90,
                 nameGap: 40,

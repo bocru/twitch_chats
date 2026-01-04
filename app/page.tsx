@@ -5,13 +5,13 @@ import {StrictMode} from 'react'
 import {Data} from './components/data'
 
 const theme = createTheme({
-  palette: {mode: 'dark', primary: {main: '#c3dcf7'}, secondary: {main: '#fbe85e'}},
+  palette: {mode: 'dark'},
 })
 
 export default function Home() {
   return (
     <StrictMode>
-      <ThemeProvider theme={theme} noSsr>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         <Data />
       </ThemeProvider>

@@ -1,19 +1,23 @@
 import {Box, Typography} from '@mui/material'
-import type {Options, ProcessedData} from '../types'
 import WordCloud from './wordcloud'
 import {Trends} from './trends'
+import {useContext} from 'react'
+import {OptionContext} from './view'
 
-export function Display({data, options}: {data: ProcessedData; options: Options}) {
+export function Display() {
+  const options = useContext(OptionContext)
   return (
     <Box sx={{height: '100%', width: '100%', minHeight: 10}}>
       {options.show === 'trends' ? (
         (options.userTrends ? options.users.length : options.terms.length) ? (
-          <Trends data={data} options={options} />
+          <Trends />
         ) : (
-          <Typography sx={{p: 2}}>Select {options.userTrends ? 'users' : 'terms'} to show their trends.</Typography>
+          <Typography variant="h6" sx={{p: 5, width: '100%', textAlign: 'center'}}>
+            Select {options.userTrends ? 'users' : 'terms'} to show their trends.
+          </Typography>
         )
       ) : (
-        <WordCloud data={data.data} options={options} />
+        <WordCloud />
       )}
     </Box>
   )

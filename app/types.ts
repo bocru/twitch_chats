@@ -27,9 +27,13 @@ export type ChatData = {
   }
 }
 
+export type DateEntry = {words: number; messages: number; index: number}
+
 export type ProcessedData = {
   data: ChatData[]
-  dates: Map<string, number>
+  dates: Map<string, DateEntry>
+  termStats: {[key: string]: {count: number; cor: number}}
+  userCounts: {[key: string]: number}
   users: {[key: string]: Uint16Array}
   terms: {[key: string]: Uint16Array}
   userTerms: {[key: string]: {[key: string]: number}}
@@ -38,16 +42,36 @@ export type ProcessedData = {
 
 export type Options = {
   channel: string
+  palette: 'romaO' | 'buda' | 'imola' | 'nuuk' | 'hawaii'
   show: string
   users: string[]
   terms: string[]
   userTrends: false
-  gridSize: number
+  reversePalette: boolean
   keepBots: boolean
   keepAts: boolean
+  nTerms: number
+  gridSize: number
+  minSize: number
+  maxSize: number
+  minRot: number
+  maxRot: number
+  rotStep: number
+  scaleFactor: number
+  trendScale: boolean
+  byCount: boolean
+  toPercent: boolean
 }
 
 export type OptsAction =
-  | {key: 'show' | 'gridSize'; value: string}
+  | {key: 'show'; value: string}
+  | {key: 'palette'; value: 'romaO' | 'buda' | 'imola' | 'nuuk' | 'hawaii'}
+  | {
+      key: 'nTerms' | 'gridSize' | 'rotStep' | 'minRot' | 'maxRot' | 'minSize' | 'maxSize' | 'scaleFactor'
+      value: number
+    }
   | {key: 'users' | 'terms'; value: string[]}
-  | {key: 'userTrends' | 'keepBots' | 'keepAts'; value: boolean}
+  | {
+      key: 'userTrends' | 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent'
+      value: boolean
+    }

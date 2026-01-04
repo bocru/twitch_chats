@@ -1,12 +1,13 @@
 import {Backdrop, CircularProgress, Stack, Typography} from '@mui/material'
 import {useEffect, useState} from 'react'
-import type {ChatData, ProcessedData} from '../types'
+import type {ChatData, DateEntry, ProcessedData} from '../types'
 import {Close} from '@mui/icons-material'
 import {use} from 'echarts/core'
 import {GridComponent, ToolboxComponent, TooltipComponent} from 'echarts/components'
 import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {View} from './view'
+import {cor} from '../lib/stats'
 
 const PREFIX = process.env.NODE_ENV === 'development' ? '/twitch_chats/' : ''
 const dateFormatter = new Intl.DateTimeFormat('en-US', {month: '2-digit', day: '2-digit'}).format
@@ -54,16 +55,20 @@ export function Data() {
                 ),
               ]
                 .sort()
-                .map((date, i) => [date, i])
+                .map((date, i) => [date, {words: 0, messages: 0, index: i}])
             )
             const nDates = dates.size
+            const termStats: {[key: string]: {count: number; cor: number}} = {}
+            const userCounts: {[key: string]: number} = {}
             const terms: {[key: string]: Uint16Array} = {}
             const users: {[key: string]: Uint16Array} = {}
             const userTerms: {[key: string]: {[key: string]: number}} = {}
             const termUsers: {[key: string]: {[key: string]: number}} = {}
             chatData.forEach(s => {
-              const dateIndex = dates.get(s.stream.date as string) as number
+              const {words, messages, index} = dates.get(s.stream.date as string) as DateEntry
               const chats = s.chats
+              let totalWords = words
+              let totalMessages = messages
               Object.keys(chats).forEach(user => {
                 const d = chats[user]
                 d.isBot = user in botUsers
@@ -76,13 +81,17 @@ export function Data() {
                 }
                 if (d.isBot) botUsers[user] = true
                 if (!(user in users)) users[user] = new Uint16Array(nDates).fill(0)
-                users[user][dateIndex] += d.nMessages
+                totalMessages += d.nMessages
+                users[user][index] += d.nMessages
                 const u = d.terms
                 if (!(user in userTerms)) userTerms[user] = {}
+                if (!(user in userCounts)) userCounts[user] = 0
+                userCounts[user] += d.nMessages
                 const ut = userTerms[user]
                 Object.keys(u).forEach(term => {
                   if (!(term in terms)) terms[term] = new Uint16Array(nDates).fill(0)
                   if (!(term in termUsers)) termUsers[term] = {}
+                  if (!(term in termStats)) termStats[term] = {count: 0, cor: 0}
                   if (user in termUsers[term]) {
                     termUsers[term][user]++
                   } else {
@@ -93,11 +102,18 @@ export function Data() {
                   } else {
                     ut[term] = 1
                   }
-                  terms[term][dateIndex] += u[term]
+                  totalWords += u[term]
+                  terms[term][index] += u[term]
+                  termStats[term].count += u[term]
                 })
               })
+              dates.set(s.stream.date as string, {words: totalWords, messages: totalMessages, index})
             })
-            setData({data: chatData, dates, terms, users, userTerms, termUsers})
+            const datesVector = Uint16Array.from({length: dates.size}, (_, i) => i)
+            Object.keys(termStats).forEach(term => {
+              termStats[term].cor = cor(datesVector, terms[term])
+            })
+            setData({data: chatData, termStats, userCounts, dates, terms, users, userTerms, termUsers})
           }
         })
         .catch(() => {
