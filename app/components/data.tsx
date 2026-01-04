@@ -9,7 +9,6 @@ import {LineChart} from 'echarts/charts'
 import {View} from './view'
 import {cor} from '../lib/stats'
 
-const PREFIX = process.env.NODE_ENV === 'development' ? '/twitch_chats/' : ''
 const dateFormatter = new Intl.DateTimeFormat('en-US', {month: '2-digit', day: '2-digit'}).format
 export function formatDate(date: Date) {
   return `${date.getFullYear().toString().substring(2, 4)}/${dateFormatter(date)}`
@@ -36,7 +35,7 @@ export function Data() {
     }
     setUrlParams(params)
     if (params.channel) {
-      fetch(`${PREFIX}/channel/${params.channel}.json.gz`)
+      fetch(`/twitch_chats/channel/${params.channel}.json.gz`)
         .then(async res => {
           const blob = await res.blob()
           const chatData = (await new Response(
