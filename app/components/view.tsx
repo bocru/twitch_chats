@@ -21,22 +21,21 @@ import {
 import type {Options, OptsAction, ProcessedData} from '../types'
 import {Display} from './display'
 import {createContext, useEffect, useMemo, useReducer, useState, type KeyboardEvent} from 'react'
-import {botUsers} from './data'
+import {botUsers} from '../page'
 
 const defaultOpts: Options = {
   channel: '',
   palette: 'nuuk',
   show: 'wordcloud',
-  userTrends: false,
   users: [],
   terms: [],
   reversePalette: false,
   keepBots: false,
   keepAts: false,
-  nTerms: 700,
-  gridSize: 6,
+  nTerms: 500,
+  gridSize: 9,
   minSize: 14,
-  maxSize: 500,
+  maxSize: 300,
   minRot: -60,
   maxRot: 60,
   rotStep: 1,
@@ -62,7 +61,7 @@ const updateUrlParams = (options: Options) => {
 
 function editOptions(state: Options, action: OptsAction) {
   const newState = {...state}
-  newState[action.key as 'show'] = action.value as string
+  newState[action.key as 'show'] = action.value as 'trends'
   updateUrlParams(newState)
   return newState
 }
@@ -152,7 +151,7 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
           if (value === 'true' || value === 'false') {
             initial[k as 'keepBots'] = value === 'true'
           } else {
-            initial[k as 'show'] = value as string
+            initial[k as 'show'] = value as 'trends'
           }
         }
       })
@@ -169,10 +168,15 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
   }, [data.users, data.userCounts, opts.keepBots, opts.byCount])
   const allTerms = useMemo(() => {
     const stats = data.termStats
-    const by = opts.byCount ? 'count' : 'cor'
-    return Object.keys(data.terms).sort((a, b) => {
-      return stats[b][by] - stats[a][by]
-    })
+    return Object.keys(data.terms).sort(
+      opts.byCount
+        ? (a, b) => {
+            return stats[b].count - stats[a].count
+          }
+        : (a, b) => {
+            return Math.abs(stats[b].cor) - Math.abs(stats[a].cor)
+          }
+    )
   }, [data.terms, data.termStats, opts.byCount])
   return (
     <Box component="main" sx={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, p: 0, m: 0}}>
@@ -192,22 +196,12 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                       onChange={e => updateOpts({key: 'show', value: e.target.value})}
                     >
                       <MenuItem value="wordcloud">Wordcloud</MenuItem>
-                      <MenuItem value="trends">Trends</MenuItem>
+                      <MenuItem value="trends">Word Trends</MenuItem>
+                      <MenuItem value="user_trends">User Trends</MenuItem>
                     </Select>
                   </FormControl>
-                  {opts.show === 'trends' ? (
+                  {opts.show !== 'wordcloud' ? (
                     <>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={opts.userTrends}
-                            onChange={() => updateOpts({key: 'userTrends', value: !opts.userTrends})}
-                          ></Switch>
-                        }
-                        label={<Typography variant="caption">User Trends</Typography>}
-                        labelPlacement="start"
-                      />
-                      <TermSelect title="Terms" allOptions={allTerms} selection={opts.terms} update={updateOpts} />
                       <FormControlLabel
                         control={
                           <Switch
@@ -223,17 +217,17 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                         }
                         labelPlacement="start"
                       />
+                      <TermSelect title="Terms" allOptions={allTerms} selection={opts.terms} update={updateOpts} />
                       <FormControlLabel
                         control={
                           <Switch
-                            size="small"
                             checked={opts.toPercent}
                             onChange={() => updateOpts({key: 'toPercent', value: !opts.toPercent})}
                           ></Switch>
                         }
                         label={
                           <Typography variant="caption">
-                            Percent of total {opts.userTrends ? 'messages' : 'wordcount'}
+                            Percent of total {opts.show === 'user_trends' ? 'messages' : 'wordcount'}
                           </Typography>
                         }
                         labelPlacement="start"

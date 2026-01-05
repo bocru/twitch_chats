@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/twitch_chats/_next/static/chunks/4fd93823156e59e8.js"],"ClientPageRoot"]
-3:I[31713,["/twitch_chats/_next/static/chunks/e5bcd4b9695bb766.js","/twitch_chats/_next/static/chunks/d617777a8b6fc89a.js","/twitch_chats/_next/static/chunks/c84c19f54ee73a49.js"],"default"]
+3:I[31713,["/twitch_chats/_next/static/chunks/15cf0880f48f44c0.js","/twitch_chats/_next/static/chunks/adea325c24c22230.js","/twitch_chats/_next/static/chunks/e5bcd4b9695bb766.js","/twitch_chats/_next/static/chunks/adbe5d2286b1efb2.js","/twitch_chats/_next/static/chunks/7290bc7d04cfd040.js"],"default"]
 6:I[97367,["/twitch_chats/_next/static/chunks/4fd93823156e59e8.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"Eco28quOuDHyrMiC9nU74","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/twitch_chats/_next/static/chunks/e5bcd4b9695bb766.js","async":true}],["$","script","script-1",{"src":"/twitch_chats/_next/static/chunks/d617777a8b6fc89a.js","async":true}],["$","script","script-2",{"src":"/twitch_chats/_next/static/chunks/c84c19f54ee73a49.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"ruW17Mf_IxwyPkFzNzCdx","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/twitch_chats/_next/static/chunks/e5bcd4b9695bb766.js","async":true}],["$","script","script-1",{"src":"/twitch_chats/_next/static/chunks/adbe5d2286b1efb2.js","async":true}],["$","script","script-2",{"src":"/twitch_chats/_next/static/chunks/7290bc7d04cfd040.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
 8:null

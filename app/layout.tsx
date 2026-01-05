@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import Theme from './theme'
 
 export const metadata: Metadata = {
   title: 'Twitch Chats',
@@ -8,7 +9,9 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Theme>{children}</Theme>
+      </body>
     </html>
   )
 }

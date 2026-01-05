@@ -43,10 +43,9 @@ export type ProcessedData = {
 export type Options = {
   channel: string
   palette: 'romaO' | 'buda' | 'imola' | 'nuuk' | 'hawaii'
-  show: string
+  show: 'wordcloud' | 'trends' | 'user_trends'
   users: string[]
   terms: string[]
-  userTrends: false
   reversePalette: boolean
   keepBots: boolean
   keepAts: boolean
@@ -64,7 +63,7 @@ export type Options = {
 }
 
 export type OptsAction =
-  | {key: 'show'; value: string}
+  | {key: 'show'; value: 'wordcloud' | 'trends' | 'user_trends'}
   | {key: 'palette'; value: 'romaO' | 'buda' | 'imola' | 'nuuk' | 'hawaii'}
   | {
       key: 'nTerms' | 'gridSize' | 'rotStep' | 'minRot' | 'maxRot' | 'minSize' | 'maxSize' | 'scaleFactor'
@@ -72,6 +71,6 @@ export type OptsAction =
     }
   | {key: 'users' | 'terms'; value: string[]}
   | {
-      key: 'userTrends' | 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent'
+      key: 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent'
       value: boolean
     }

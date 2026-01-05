@@ -51,7 +51,7 @@ export default function WordCloud() {
               if (term in termCounts) {
                 termCounts[term] += user.terms[term]
               } else {
-                termCounts[term] = 0
+                termCounts[term] = user.terms[term]
               }
             }
           })

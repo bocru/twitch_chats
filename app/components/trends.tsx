@@ -75,14 +75,14 @@ export function Trends() {
       }
     }
   }, [])
-  const selected = options[options.userTrends ? 'users' : 'terms']
+  const selected = options[options.show === 'user_trends' ? 'users' : 'terms']
   const filteredData = useMemo(() => {
     return options.users.length || options.terms.length
       ? extractFreqs(options.users, options.terms, data.data, data.dates, options.toPercent)
       : {users: data.users, terms: data.terms}
   }, [options.users, options.terms, options.toPercent])
   const trendData = useMemo(() => {
-    const d = filteredData[options.userTrends ? 'users' : 'terms']
+    const d = filteredData[options.show === 'user_trends' ? 'users' : 'terms']
     const series: LineSeriesOption[] = []
     const nSelected = selected.length
     const palette = palettes[options.palette]
@@ -105,7 +105,7 @@ export function Trends() {
       }
     })
     return {dates: data.dates, series}
-  }, [selected, options.userTrends, filteredData, options.palette, options.reversePalette])
+  }, [selected, options.show, filteredData, options.palette, options.reversePalette])
 
   useEffect(() => {
     if (container.current) {
@@ -117,7 +117,7 @@ export function Trends() {
               color: '#d9ccff',
               backgroundColor: '#00000000',
               animationDuration: 300,
-              grid: {top: 30, right: 100, bottom: 60, left: 60},
+              grid: {top: 50, right: 100, bottom: 60, left: 60},
               tooltip: {
                 trigger: 'axis',
                 textStyle: {
@@ -125,6 +125,18 @@ export function Trends() {
                 },
                 backgroundColor: '#00000060',
                 borderWidth: 0,
+              },
+              title: {
+                text:
+                  options.show === 'user_trends' && !options.terms.length
+                    ? 'User Messages Over Time'
+                    : (options.show === 'user_trends' && options.terms.length
+                        ? 'Use of "' + options.terms.join('", "') + '"'
+                        : 'Word Use') +
+                      ' Over Time' +
+                      (options.users.length ? ' by ' + options.users.join(', ') : ''),
+                top: 10,
+                left: 10,
               },
               xAxis: {
                 data: [...trendData.dates.keys()],
@@ -135,11 +147,11 @@ export function Trends() {
               yAxis: {
                 type: 'value',
                 name:
-                  options.userTrends && !options.terms.length
+                  options.show === 'user_trends' && !options.terms.length
                     ? (options.toPercent ? 'Percent of ' : '') + 'Messages Sent'
                     : options.toPercent
                     ? 'Percent of Words Used'
-                    : 'Term Count',
+                    : 'Word Count',
                 nameLocation: 'center',
                 nameRotate: 90,
                 nameGap: 40,
