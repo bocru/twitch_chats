@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<g transform="matrix(17.544 0 0 18.252 -140.11 -145.27)" fill="#a970ff">
+<polygon points="19 31 23 31 32 22 32 8 13 8 8 13 8 31 14 31 14 36"></polygon>
+<polygon points="18 29 22 25 26 25 30 21 30 10 14 10 14 25 18 25"></polygon>
+<path d="m20 14h2v6h-2zm7 0v6h-2v-6z" fill="#a970ff"></path>
+</g>
+<polygon transform="matrix(19.14 0 0 19.14 -176.47 -166.58)" points="30 10 14 10 14 25 18 25 18 29 22 25 26 25 30 21" fill="#fff"></polygon>
+<path d="m179.1 67.44h50.683v152.05h-50.683zm177.39 0v152.05h-50.683v-152.05z" stroke-width="25.347"></path>
+<g transform="matrix(-6.4703 0 0 6.7313 563.65 270.05)" fill="#a970ff">
+<polygon points="14 31 14 36 19 31 23 31 32 22 32 8 13 8 8 13 8 31"></polygon>
+<polygon points="18 29 22 25 26 25 30 21 30 10 14 10 14 25 18 25"></polygon>
+<path d="m20 14h2v6h-2zm7 0v6h-2v-6z" fill="#a970ff"></path>
+</g>
+<polygon transform="matrix(-7.0588 0 0 7.0588 577.06 262.19)" points="30 10 14 10 14 25 18 25 18 29 22 25 26 25 30 21" fill="#fff"></polygon>
+<path d="m445.92 348.49h-18.692v56.078h18.692zm-65.424 0v56.078h18.692v-56.078z" stroke-width="9.3481"></path>
+</svg>

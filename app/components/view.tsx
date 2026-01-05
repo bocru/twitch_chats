@@ -227,7 +227,8 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                         }
                         label={
                           <Typography variant="caption">
-                            Percent of total {opts.show === 'user_trends' ? 'messages' : 'wordcount'}
+                            Percent of total{' '}
+                            {opts.show === 'user_trends' && !opts.terms.length ? 'messages' : 'word count'}
                           </Typography>
                         }
                         labelPlacement="start"

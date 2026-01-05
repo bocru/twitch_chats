@@ -125,6 +125,7 @@ export function Trends() {
                 },
                 backgroundColor: '#00000060',
                 borderWidth: 0,
+                valueFormatter: options.toPercent ? (x: number) => x.toFixed(3) : (x: number) => x,
               },
               title: {
                 text:

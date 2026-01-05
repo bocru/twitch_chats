@@ -134,9 +134,7 @@ export default function WordCloud() {
                     name: string
                     data: {stats: {count: number; cor: number}}
                   }) => {
-                    return `${marker} ${name} (count = ${data.stats.count}; r = ${
-                      Math.round(data.stats.cor * 1e3) / 1e3
-                    })`
+                    return `${marker} ${name} (n = ${data.stats.count}; <i>r</i> = ${data.stats.cor.toFixed(3)})`
                   },
                 },
                 toolbox: {
