@@ -72,8 +72,7 @@ export default function WordCloud() {
         const count = termCounts[term]
         const cor = data.termStats[term].cor
         return {
-          name: term.includes(':') ? term.split(':')[0] : term,
-          label: term,
+          name: term,
           stats: {count, cor},
           value: Math.pow(count, options.scaleFactor) * (options.trendScale ? Math.abs(cor) : 1),
           textStyle: {color: '#fff'},
@@ -82,7 +81,7 @@ export default function WordCloud() {
       .sort(byValue)
       .filter((_, i) => i < nTerms)
       .map((e, i) => {
-        e.textStyle.color = getColor(data.termStats[e.label].cor > 0 ? i / nTerms / 2 : 0.5 + (1 - i / nTerms) / 2)
+        e.textStyle.color = getColor(data.termStats[e.name].cor > 0 ? i / nTerms / 2 : 0.5 + (1 - i / nTerms) / 2)
         return e
       })
     setTerms(terms)

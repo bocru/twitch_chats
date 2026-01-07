@@ -17,6 +17,7 @@ export function formatDate(date: Date) {
 }
 
 export const botUsers: {[key: string]: boolean} = {streamelements: true, sery_bot: true, nightbot: true, moobot: true}
+export const internalColon = /\b:/g
 
 export default function Data() {
   const [data, setData] = useState<ProcessedData>()
@@ -90,6 +91,12 @@ export default function Data() {
                 userCounts[user] += d.nMessages
                 const ut = userTerms[user]
                 Object.keys(u).forEach(term => {
+                  if (term.includes(':e')) {
+                    const emoteText = term.split(internalColon)[0]
+                    u[emoteText] = u[term]
+                    delete u[term]
+                    term = emoteText
+                  }
                   const termCount = u[term]
                   if (!(term in terms)) terms[term] = new Uint16Array(nDates).fill(0)
                   if (!(term in termUsers)) termUsers[term] = {}
