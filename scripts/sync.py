@@ -1,4 +1,5 @@
 import gzip
+import hashlib
 import json
 import re
 import subprocess
@@ -113,20 +114,31 @@ if __name__ == "__main__":
     download("stopwords")
     exclude = list(stopwords.words("english"))
     channels = listdir("data")
+    states_file = "scripts/states.json"
+    with open(states_file, "r", encoding="utf-8") as file:
+        states = json.load(file)
     for channel in channels:
         channel_path = f"data/{channel}/"
         processed_file = f"public/channel/{channel}.json.gz"
-        with gzip.open(processed_file, "wb") as final_file:
-            final_file.write(
-                json.dumps(
-                    list(
-                        processed
-                        for processed in [
-                            process_vod(f"{channel_path}{vod_path}/")
-                            for vod_path in listdir(channel_path)
-                        ]
-                        if processed
-                    )
-                ).encode()
-            )
-        copyfile(processed_file, f"docs/channel/{channel}.json.gz")
+        vod_paths = listdir(channel_path)
+        state = hashlib.md5("".join(vod_paths).encode()).hexdigest()
+        if not channel in states or state != states[channel]:
+            with gzip.open(processed_file, "wb") as final_file:
+                final_file.write(
+                    json.dumps(
+                        list(
+                            processed
+                            for processed in [
+                                process_vod(f"{channel_path}{vod_path}/")
+                                for vod_path in listdir(channel_path)
+                            ]
+                            if processed
+                        )
+                    ).encode()
+                )
+            copyfile(processed_file, f"docs/channel/{channel}.json.gz")
+            states[channel] = hashlib.md5(
+                "".join(listdir(channel_path)).encode()
+            ).hexdigest()
+    with open(states_file, "w", encoding="utf-8") as file:
+        json.dump(states, file)
