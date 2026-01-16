@@ -5,7 +5,7 @@ import {useContext, useEffect, useMemo, useRef} from 'react'
 import type {ChatData, DateEntry, ProcessedData} from '../types'
 import type {LineEndLabelOption} from 'echarts/types/src/chart/line/LineSeries.js'
 import {palettes} from './palettes'
-import {DataContext, OptionContext} from './view'
+import {DataContext, DetailSetterContext, OptionContext} from './view'
 
 const endLabel: LineEndLabelOption = {
   show: true,
@@ -63,10 +63,14 @@ function extractFreqs(
 export function Trends() {
   const data = useContext(DataContext) as ProcessedData
   const options = useContext(OptionContext)
+  const displayDetails = useContext(DetailSetterContext)
   const container = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if ('undefined' !== typeof window) {
       const chart = container.current ? init(container.current, 'dark') : null
+      if (container.current) {
+        container.current.onclick = () => displayDetails({key: 'lock', value: true})
+      }
       const resize = () => chart && chart.resize()
       window.addEventListener('resize', resize)
       return () => {
@@ -126,6 +130,32 @@ export function Trends() {
                 backgroundColor: '#00000060',
                 borderWidth: 0,
                 valueFormatter: options.toPercent ? (x: number) => x.toFixed(3) : (x: number) => x,
+                triggerEvent: true,
+                formatter: (series: {axisValue: string; marker: string; seriesName: string; value: number}[]) => {
+                  displayDetails({
+                    key: 'replace',
+                    value: {
+                      lock: false,
+                      isUser: options.show === 'user_trends',
+                      date: series[0].axisValue,
+                      terms: series.map(({seriesName}) => seriesName),
+                    },
+                  })
+                  return (
+                    series[0].axisValue +
+                    '<br /><table class="tooltip-table"><tbody>' +
+                    series
+                      .map(
+                        options.toPercent
+                          ? ({marker, seriesName, value}) =>
+                              `<tr><td>${marker} ${seriesName} </td><td>${value.toFixed(3)}</td></tr>`
+                          : ({marker, seriesName, value}) =>
+                              `<tr><td>${marker} ${seriesName} </td><td>${value}</td></tr>`
+                      )
+                      .join('') +
+                    '</tbody></table>'
+                  )
+                },
               },
               title: {
                 text:
@@ -159,11 +189,6 @@ export function Trends() {
                 min: (value: {min: number}) => Math.floor(value.min),
               },
               series: trendData.series,
-              toolbox: {
-                feature: {
-                  saveAsImage: {name: `${options.channel}_trends`},
-                },
-              },
             },
             true,
             true
@@ -174,5 +199,16 @@ export function Trends() {
       }
     }
   }, [trendData])
-  return <Box ref={container} sx={{width: '100%', height: '100%', minHeight: '10px'}} />
+  return (
+    <Box
+      ref={container}
+      sx={{
+        width: '100%',
+        height: '100%',
+        minHeight: '10px',
+        '& canvas': {cursor: 'pointer'},
+        '& .tooltip-table td:last-of-type': {textAlign: 'right'},
+      }}
+    />
+  )
 }

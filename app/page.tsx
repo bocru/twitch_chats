@@ -4,7 +4,7 @@ import {Backdrop, CircularProgress, Stack, Typography} from '@mui/material'
 import {useEffect, useState} from 'react'
 import type {ChatData, DateEntry, ProcessedData} from './types'
 import {use} from 'echarts/core'
-import {GridComponent, TitleComponent, ToolboxComponent, TooltipComponent} from 'echarts/components'
+import {GridComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {View} from './components/view'
@@ -44,19 +44,21 @@ export default function Data() {
             await blob.stream().pipeThrough(new DecompressionStream('gzip'))
           ).json()) as ChatData[]
           if (chatData) {
+            const dataIndex: {[key: string]: number} = {}
             const dates = new Map(
               [
                 ...new Set(
-                  chatData.map(s => {
+                  chatData.map((s, i) => {
                     if (!('date' in s.stream)) {
                       s.stream.date = formatDate(new Date(s.stream.created_at))
                     }
+                    dataIndex[s.stream.date as string] = i
                     return s.stream.date as string
                   })
                 ),
               ]
                 .sort()
-                .map((date, i) => [date, {words: 0, messages: 0, index: i}])
+                .map((date, i) => [date, {words: 0, messages: 0, index: i, dataIndex: dataIndex[date]}])
             )
             const nDates = dates.size
             const termStats: {[key: string]: {count: number; cor: number}} = {}
@@ -66,7 +68,7 @@ export default function Data() {
             const userTerms: {[key: string]: {[key: string]: number}} = {}
             const termUsers: {[key: string]: {[key: string]: number}} = {}
             chatData.forEach(s => {
-              const {words, messages, index} = dates.get(s.stream.date as string) as DateEntry
+              const {words, messages, index, dataIndex} = dates.get(s.stream.date as string) as DateEntry
               const chats = s.chats
               let totalWords = words
               let totalMessages = messages
@@ -116,7 +118,7 @@ export default function Data() {
                   termStats[term].count += termCount
                 })
               })
-              dates.set(s.stream.date as string, {words: totalWords, messages: totalMessages, index})
+              dates.set(s.stream.date as string, {words: totalWords, messages: totalMessages, index, dataIndex})
             })
             const datesVector = Uint16Array.from({length: dates.size}, (_, i) => i)
             Object.keys(termStats).forEach(term => {
@@ -131,7 +133,7 @@ export default function Data() {
     }
     ;(async () => {
       await import('echarts-wordcloud')
-      use([ToolboxComponent, CanvasRenderer, LineChart, GridComponent, TooltipComponent, TitleComponent])
+      use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, TitleComponent])
       setReady(true)
     })()
   }, [])

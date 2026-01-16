@@ -3,7 +3,7 @@ import {Box} from '@mui/material'
 import {useContext, useEffect, useMemo, useRef, useState} from 'react'
 import type {ProcessedData} from '../types'
 import {palettes} from './palettes'
-import {DataContext, OptionContext} from './view'
+import {DataContext, DetailSetterContext, OptionContext} from './view'
 
 function byValue(a: {value: number}, b: {value: number}) {
   return b.value - a.value
@@ -13,11 +13,15 @@ const relayout: {effect: number | NodeJS.Timeout; resize: number | NodeJS.Timeou
 export default function WordCloud() {
   const data = useContext(DataContext) as ProcessedData
   const options = useContext(OptionContext)
+  const displayDetails = useContext(DetailSetterContext)
   const container = useRef<HTMLDivElement>(null)
   const [terms, setTerms] = useState<{name: string; value: number}[]>([])
   useEffect(() => {
     if ('undefined' !== typeof window) {
       const chart = container.current ? init(container.current, 'dark') : null
+      if (container.current) {
+        container.current.onclick = () => displayDetails({key: 'lock', value: true})
+      }
       const resize = () => {
         if (chart) {
           clearTimeout(relayout.resize)
@@ -133,12 +137,16 @@ export default function WordCloud() {
                     name: string
                     data: {stats: {count: number; cor: number}}
                   }) => {
+                    displayDetails({
+                      key: 'replace',
+                      value: {
+                        lock: false,
+                        isUser: false,
+                        date: '',
+                        terms: [name],
+                      },
+                    })
                     return `${marker} ${name} (n = ${data.stats.count}; <i>r</i> = ${data.stats.cor.toFixed(3)})`
-                  },
-                },
-                toolbox: {
-                  feature: {
-                    saveAsImage: {name: `${options.channel}_wordcloud`},
                   },
                 },
               },
@@ -150,7 +158,5 @@ export default function WordCloud() {
       }
     }
   }, [terms, options.gridSize, options.minSize, options.maxSize, options.rotStep, options.minRot, options.maxRot])
-  return (
-    <Box ref={container} sx={{width: '100%', height: '100%', minHeight: '10px', '& canvas': {cursor: 'default'}}} />
-  )
+  return <Box ref={container} sx={{width: '100%', height: '100%', minHeight: '10px'}} />
 }

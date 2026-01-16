@@ -27,7 +27,7 @@ export type ChatData = {
   }
 }
 
-export type DateEntry = {words: number; messages: number; index: number}
+export type DateEntry = {words: number; messages: number; index: number; dataIndex: number}
 
 export type ProcessedData = {
   data: ChatData[]
@@ -60,6 +60,7 @@ export type Options = {
   trendScale: boolean
   byCount: boolean
   toPercent: boolean
+  showDetails: boolean
 }
 
 export type OptsAction =
@@ -71,6 +72,14 @@ export type OptsAction =
     }
   | {key: 'users' | 'terms'; value: string[]}
   | {
-      key: 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent'
+      key: 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent' | 'showDetails'
       value: boolean
     }
+
+export type Details = {lock: boolean; isUser: boolean; date: string; terms: string[]}
+
+export type DetailActions =
+  | {key: 'replace'; value: Details}
+  | {key: 'lock' | 'isUser'; value: boolean}
+  | {key: 'date'; value: string}
+  | {key: 'terms'; value: string[]}

@@ -18,7 +18,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type {Options, OptsAction, ProcessedData} from '../types'
+import type {DetailActions, Details, Options, OptsAction, ProcessedData} from '../types'
 import {Display} from './display'
 import {createContext, useEffect, useMemo, useReducer, useState, type KeyboardEvent} from 'react'
 import {botUsers} from '../page'
@@ -43,6 +43,7 @@ const defaultOpts: Options = {
   trendScale: true,
   byCount: true,
   toPercent: true,
+  showDetails: true,
 }
 
 export function optionsToString(options: Options) {
@@ -63,6 +64,21 @@ function editOptions(state: Options, action: OptsAction) {
   const newState = {...state}
   newState[action.key as 'show'] = action.value as 'trends'
   updateUrlParams(newState)
+  return newState
+}
+
+function editDetails(state: Details, action: DetailActions) {
+  if (state.lock && action.key !== 'lock') return state
+  if (action.key === 'replace') return {...action.value}
+  const newState = {...state}
+  if (action.key === 'lock') {
+    newState.lock = !state.lock
+  } else if (action.key === 'terms') {
+    newState.terms = [...action.value]
+  } else {
+    newState.terms = [...newState.terms]
+    newState[action.key as 'lock'] = action.value as boolean
+  }
   return newState
 }
 
@@ -139,6 +155,10 @@ function TermSelect({
 
 export const DataContext = createContext<ProcessedData | null>(null)
 export const OptionContext = createContext<Options>(defaultOpts)
+export const OptionSetterContext = createContext((action: OptsAction) => {})
+
+export const DetailContext = createContext<Details>({lock: false, isUser: false, date: '', terms: []})
+export const DetailSetterContext = createContext((action: DetailActions) => {})
 
 export function View({data, params}: {data: ProcessedData; params: {[key: string]: string}}) {
   const [opts, updateOpts] = useReducer(
@@ -178,8 +198,12 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
           }
     )
   }, [data.terms, data.termStats, opts.byCount])
+  const [detailDisplay, updateDetails] = useReducer(editDetails, {lock: false, isUser: false, date: '', terms: []})
   return (
-    <Box component="main" sx={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, p: 0, m: 0}}>
+    <Box
+      component="main"
+      sx={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, p: 0, m: 0, overflow: 'hidden'}}
+    >
       <Box sx={{height: '100%', width: 250, overflow: 'hidden'}}>
         <Card sx={{height: '100%', width: '100%', overflow: 'hidden'}}>
           <CardHeader title="Options" />
@@ -428,7 +452,13 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
       <Box sx={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 250}}>
         <DataContext.Provider value={data}>
           <OptionContext.Provider value={opts}>
-            <Display />
+            <OptionSetterContext.Provider value={updateOpts}>
+              <DetailSetterContext.Provider value={updateDetails}>
+                <DetailContext.Provider value={detailDisplay}>
+                  <Display />
+                </DetailContext.Provider>
+              </DetailSetterContext.Provider>
+            </OptionSetterContext.Provider>
           </OptionContext.Provider>
         </DataContext.Provider>
       </Box>
