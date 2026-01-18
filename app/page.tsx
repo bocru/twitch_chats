@@ -2,14 +2,16 @@
 
 import {Backdrop, CircularProgress, Stack, Typography} from '@mui/material'
 import {useEffect, useState} from 'react'
-import type {ChatData, DateEntry, ProcessedData} from './types'
+import type {ChatData} from './types'
 import {use} from 'echarts/core'
 import {GridComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {View} from './components/view'
-import {cor} from './lib/stats'
 import ChannelSelect from './components/channel_select'
+import {LocalizationProvider} from '@mui/x-date-pickers'
+import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs'
+import dayjs from 'dayjs'
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {month: '2-digit', day: '2-digit'}).format
 export function formatDate(date: Date) {
@@ -19,7 +21,7 @@ export function formatDate(date: Date) {
 export const botUsers: {[key: string]: boolean} = {streamelements: true, sery_bot: true, nightbot: true, moobot: true}
 
 export default function Data() {
-  const [data, setData] = useState<ProcessedData>()
+  const [data, setData] = useState<ChatData[]>()
   const [failed, setFailed] = useState(false)
   const [ready, setReady] = useState(false)
   const [urlParams, setUrlParams] = useState<{[key: string]: string}>({})
@@ -41,90 +43,13 @@ export default function Data() {
         .then(async res => {
           const blob = await res.blob()
           const chatData = (await new Response(
-            await blob.stream().pipeThrough(new DecompressionStream('gzip'))
+            await blob.stream().pipeThrough(new DecompressionStream('gzip')),
           ).json()) as ChatData[]
           if (chatData) {
-            const dataIndex: {[key: string]: number} = {}
-            const dates = new Map(
-              [
-                ...new Set(
-                  chatData.map((s, i) => {
-                    if (!('date' in s.stream)) {
-                      s.stream.date = formatDate(new Date(s.stream.created_at))
-                    }
-                    dataIndex[s.stream.date as string] = i
-                    return s.stream.date as string
-                  })
-                ),
-              ]
-                .sort()
-                .map((date, i) => [date, {words: 0, messages: 0, index: i, dataIndex: dataIndex[date]}])
-            )
-            const nDates = dates.size
-            const termStats: {[key: string]: {count: number; cor: number}} = {}
-            const userCounts: {[key: string]: number} = {}
-            const terms: {[key: string]: Uint16Array} = {}
-            const users: {[key: string]: Uint16Array} = {}
-            const userTerms: {[key: string]: {[key: string]: number}} = {}
-            const termUsers: {[key: string]: {[key: string]: number}} = {}
-            chatData.forEach(s => {
-              const {words, messages, index, dataIndex} = dates.get(s.stream.date as string) as DateEntry
-              const chats = s.chats
-              let totalWords = words
-              let totalMessages = messages
-              Object.keys(chats).forEach(user => {
-                const d = chats[user]
-                d.isBot = user in botUsers
-                if (!d.isBot) {
-                  d.badges.forEach(badge => {
-                    if (badge.setID == 'bot-badge') {
-                      d.isBot = true
-                    }
-                  })
-                }
-                if (d.isBot) botUsers[user] = true
-                if (!(user in users)) users[user] = new Uint16Array(nDates).fill(0)
-                totalMessages += d.nMessages
-                users[user][index] += d.nMessages
-                const u = d.terms
-                if (!(user in userTerms)) userTerms[user] = {}
-                if (!(user in userCounts)) userCounts[user] = 0
-                userCounts[user] += d.nMessages
-                const ut = userTerms[user]
-                Object.keys(u).forEach(term => {
-                  if (term.includes(':e')) {
-                    const parts = term.split(':', 2)
-                    const emoteText = parts[0] ? parts[0] : ':' + parts[1]
-                    u[emoteText] = u[term]
-                    delete u[term]
-                    term = emoteText
-                  }
-                  const termCount = u[term]
-                  if (!(term in terms)) terms[term] = new Uint16Array(nDates).fill(0)
-                  if (!(term in termUsers)) termUsers[term] = {}
-                  if (!(term in termStats)) termStats[term] = {count: 0, cor: 0}
-                  if (user in termUsers[term]) {
-                    termUsers[term][user]++
-                  } else {
-                    termUsers[term][user] = 1
-                  }
-                  if (term in ut) {
-                    ut[term]++
-                  } else {
-                    ut[term] = 1
-                  }
-                  totalWords += termCount
-                  terms[term][index] += termCount
-                  termStats[term].count += termCount
-                })
-              })
-              dates.set(s.stream.date as string, {words: totalWords, messages: totalMessages, index, dataIndex})
+            chatData.forEach(({stream}) => {
+              stream.date = dayjs(stream.created_at)
             })
-            const datesVector = Uint16Array.from({length: dates.size}, (_, i) => i)
-            Object.keys(termStats).forEach(term => {
-              termStats[term].cor = cor(datesVector, terms[term])
-            })
-            setData({data: chatData, termStats, userCounts, dates, terms, users, userTerms, termUsers})
+            setData(chatData)
           }
         })
         .catch(() => {
@@ -137,21 +62,23 @@ export default function Data() {
       setReady(true)
     })()
   }, [])
-  return failed || !urlParams.channel ? (
-    <Backdrop open={failed || !urlParams.channel}>
-      <Stack spacing={1}>
-        <Typography>Enter a channel name with collected data:</Typography>
-        <ChannelSelect />
-      </Stack>
-    </Backdrop>
-  ) : data && ready ? (
-    <View data={data} params={urlParams} />
-  ) : (
-    <Backdrop open={!ready}>
-      <Stack>
-        <CircularProgress sx={{m: 'auto'}} />
-        <Typography>Loading chat data...</Typography>
-      </Stack>
-    </Backdrop>
+  return (
+    failed || !urlParams.channel ?
+      <Backdrop open={failed || !urlParams.channel}>
+        <Stack spacing={1}>
+          <Typography>Enter a channel name with collected data:</Typography>
+          <ChannelSelect />
+        </Stack>
+      </Backdrop>
+    : data && ready ?
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <View rawData={data} params={urlParams} />
+      </LocalizationProvider>
+    : <Backdrop open={!ready}>
+        <Stack>
+          <CircularProgress sx={{m: 'auto'}} />
+          <Typography>Loading chat data...</Typography>
+        </Stack>
+      </Backdrop>
   )
 }

@@ -14,25 +14,29 @@ import {
   Typography,
 } from '@mui/material'
 import {useContext, useMemo} from 'react'
-import type {ProcessedData} from '../types'
+import type {DateEntry, ProcessedData} from '../types'
 import {DataContext, DetailContext, DetailSetterContext} from './view'
 
-function termsOnDate(getUsers: boolean, date: string, data: ProcessedData) {
+function termsOnDate(getUsers: boolean, date: string, dates: Map<string, DateEntry>) {
   const countSource: {[key: string]: {[key: string]: number}} = {}
-  const dateEntry = data.dates.get(date)
+  const dateEntry = dates.get(date)
   if (dateEntry) {
-    const chats = data.data[dateEntry.dataIndex].chats
+    const streams = dateEntry.streams
     if (getUsers) {
-      Object.keys(chats).forEach(userName => {
-        const user = chats[userName]
-        countSource[userName] = user.terms
+      streams.forEach(({chats}) => {
+        Object.keys(chats).forEach(userName => {
+          const user = chats[userName]
+          countSource[userName] = user.terms
+        })
       })
     } else {
-      Object.keys(chats).forEach(userName => {
-        const terms = chats[userName].terms
-        Object.keys(terms).forEach(term => {
-          if (!(term in countSource)) countSource[term] = {}
-          countSource[term][userName] = terms[term]
+      streams.forEach(({chats}) => {
+        Object.keys(chats).forEach(userName => {
+          const terms = chats[userName].terms
+          Object.keys(terms).forEach(term => {
+            if (!(term in countSource)) countSource[term] = {}
+            countSource[term][userName] = terms[term]
+          })
         })
       })
     }
@@ -47,32 +51,30 @@ function top10(value: string, i: number) {
 function TermTable({term, counts, isUser}: {term: string; counts: {[key: string]: number}; isUser?: boolean}) {
   const byCount = (a: string, b: string) => counts[b] - counts[a]
   const terms = Object.keys(counts)
-  return terms.length ? (
-    <Box>
-      <Typography variant="h5">{term}</Typography>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>{isUser ? 'Words' : 'Users'}</TableCell>
-            <TableCell>Uses</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {terms
-            .sort(byCount)
-            .filter(top10)
-            .map(term => (
-              <TableRow key={term}>
-                <TableCell>{term}</TableCell>
-                <TableCell>{counts[term]}</TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
-    </Box>
-  ) : (
-    <></>
-  )
+  return terms.length ?
+      <Box>
+        <Typography variant="h5">{term}</Typography>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>{isUser ? 'Words' : 'Users'}</TableCell>
+              <TableCell>Uses</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {terms
+              .sort(byCount)
+              .filter(top10)
+              .map(term => (
+                <TableRow key={term}>
+                  <TableCell>{term}</TableCell>
+                  <TableCell>{counts[term]}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </Box>
+    : <></>
 }
 
 export function DetailTables() {
@@ -80,12 +82,12 @@ export function DetailTables() {
   const toDisplay = useContext(DetailContext)
   const setDetails = useContext(DetailSetterContext)
   const countSource = useMemo(() => {
-    return toDisplay.date
-      ? termsOnDate(toDisplay.isUser, toDisplay.date, data)
-      : toDisplay.isUser
-      ? data.userTerms
+    return (
+      toDisplay.date ? termsOnDate(toDisplay.isUser, toDisplay.date, data.dates)
+      : toDisplay.isUser ? data.userTerms
       : data.termUsers
-  }, [toDisplay.isUser, toDisplay.date, data])
+    )
+  }, [toDisplay.isUser, toDisplay.date, data.dates, data.userTerms, data.termUsers])
   const tables = useMemo(() => {
     return toDisplay.terms.map(term => (
       <TermTable key={term} term={term} counts={countSource[term] || {}} isUser={toDisplay.isUser} />
@@ -98,7 +100,9 @@ export function DetailTables() {
         title="Details"
         subheader={
           <>
-            {toDisplay.date ? <Typography>Date: {toDisplay.date}</Typography> : <></>}
+            {toDisplay.date ?
+              <Typography>Date: {toDisplay.date}</Typography>
+            : <></>}
             <FormControlLabel
               control={
                 <Switch
@@ -116,7 +120,7 @@ export function DetailTables() {
       <CardContent
         sx={{
           p: 0,
-          height: '100%',
+          height: 'calc(100% - 85px)',
           overflow: 'hidden',
           '& td': {pl: 0, pr: 0},
           '& th': {pl: 0, pr: 0},

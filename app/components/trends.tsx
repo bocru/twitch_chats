@@ -17,7 +17,7 @@ function extractFreqs(
   selectTerms: string[],
   data: ChatData[],
   dates: Map<string, DateEntry>,
-  toPercent: boolean
+  toPercent: boolean,
 ) {
   const terms: {[key: string]: number[]} = {}
   const users: {[key: string]: number[]} = {}
@@ -31,7 +31,7 @@ function extractFreqs(
   const filterTerms = !!selectTerms.length
   const filterUsers = !!selectUsers.length
   data.forEach(s => {
-    const {words, messages, index} = dates.get(s.stream.date as string) as DateEntry
+    const {words, messages, index} = dates.get(s.stream.date.format('YY/MM/DD')) as DateEntry
     const chats = s.chats
     Object.keys(chats).forEach(user => {
       if (!filterUsers || user in users) {
@@ -81,18 +81,19 @@ export function Trends() {
   }, [])
   const selected = options[options.show === 'user_trends' ? 'users' : 'terms']
   const filteredData = useMemo(() => {
-    return options.users.length || options.terms.length
-      ? extractFreqs(options.users, options.terms, data.data, data.dates, options.toPercent)
+    return options.users.length || options.terms.length ?
+        extractFreqs(options.users, options.terms, data.data, data.dates, options.toPercent)
       : {users: data.users, terms: data.terms}
-  }, [options.users, options.terms, options.toPercent])
+  }, [data.data, data.dates, options.users, options.terms, options.toPercent])
   const trendData = useMemo(() => {
     const d = filteredData[options.show === 'user_trends' ? 'users' : 'terms']
     const series: LineSeriesOption[] = []
     const nSelected = selected.length
     const palette = palettes[options.palette]
     const nColors = palette.length
-    const getColor = options.reversePalette
-      ? (freq: number) => palette[Math.round((1 - freq) * nColors)]
+    const getColor =
+      options.reversePalette ?
+        (freq: number) => palette[Math.round((1 - freq) * nColors)]
       : (freq: number) => palette[Math.round(freq * nColors)]
     selected.forEach((term, i) => {
       const values = d[term]
@@ -146,11 +147,11 @@ export function Trends() {
                     '<br /><table class="tooltip-table"><tbody>' +
                     series
                       .map(
-                        options.toPercent
-                          ? ({marker, seriesName, value}) =>
-                              `<tr><td>${marker} ${seriesName} </td><td>${value.toFixed(3)}</td></tr>`
-                          : ({marker, seriesName, value}) =>
-                              `<tr><td>${marker} ${seriesName} </td><td>${value}</td></tr>`
+                        options.toPercent ?
+                          ({marker, seriesName, value}) =>
+                            `<tr><td>${marker} ${seriesName} </td><td>${value.toFixed(3)}</td></tr>`
+                        : ({marker, seriesName, value}) =>
+                            `<tr><td>${marker} ${seriesName} </td><td>${value}</td></tr>`,
                       )
                       .join('') +
                     '</tbody></table>'
@@ -159,13 +160,13 @@ export function Trends() {
               },
               title: {
                 text:
-                  options.show === 'user_trends' && !options.terms.length
-                    ? 'User Messages Over Time'
-                    : (options.show === 'user_trends' && options.terms.length
-                        ? 'Use of "' + options.terms.join('", "') + '"'
-                        : 'Word Use') +
-                      ' Over Time' +
-                      (options.users.length ? ' by ' + options.users.join(', ') : ''),
+                  options.show === 'user_trends' && !options.terms.length ?
+                    'User Messages Over Time'
+                  : (options.show === 'user_trends' && options.terms.length ?
+                      'Use of "' + options.terms.join('", "') + '"'
+                    : 'Word Use') +
+                    ' Over Time' +
+                    (options.users.length ? ' by ' + options.users.join(', ') : ''),
                 top: 10,
                 left: 10,
               },
@@ -178,11 +179,10 @@ export function Trends() {
               yAxis: {
                 type: 'value',
                 name:
-                  options.show === 'user_trends' && !options.terms.length
-                    ? (options.toPercent ? 'Percent of ' : '') + 'Messages Sent'
-                    : options.toPercent
-                    ? 'Percent of Words Used'
-                    : 'Word Count',
+                  options.show === 'user_trends' && !options.terms.length ?
+                    (options.toPercent ? 'Percent of ' : '') + 'Messages Sent'
+                  : options.toPercent ? 'Percent of Words Used'
+                  : 'Word Count',
                 nameLocation: 'center',
                 nameRotate: 90,
                 nameGap: 40,
@@ -191,7 +191,7 @@ export function Trends() {
               series: trendData.series,
             },
             true,
-            true
+            true,
           )
         } else {
           chart.clear()

@@ -1,3 +1,5 @@
+import type {Dayjs} from 'dayjs'
+
 export type Terms = {[key: string]: number}
 export type userBadge = {
   id?: string
@@ -23,11 +25,11 @@ export type ChatData = {
     description: {} | string
     created_at: string
     duration: number
-    date?: string
+    date: Dayjs
   }
 }
 
-export type DateEntry = {words: number; messages: number; index: number; dataIndex: number}
+export type DateEntry = {words: number; messages: number; index: number; streams: ChatData[]}
 
 export type ProcessedData = {
   data: ChatData[]
@@ -61,6 +63,7 @@ export type Options = {
   byCount: boolean
   toPercent: boolean
   showDetails: boolean
+  streams: string
 }
 
 export type OptsAction =
@@ -75,6 +78,7 @@ export type OptsAction =
       key: 'reversePalette' | 'keepBots' | 'keepAts' | 'trendScale' | 'byCount' | 'toPercent' | 'showDetails'
       value: boolean
     }
+  | {key: 'streams'; value: string}
 
 export type Details = {lock: boolean; isUser: boolean; date: string; terms: string[]}
 

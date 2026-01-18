@@ -18,10 +18,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import type {DetailActions, Details, Options, OptsAction, ProcessedData} from '../types'
+import type {ChatData, DateEntry, DetailActions, Details, Options, OptsAction, ProcessedData} from '../types'
 import {Display} from './display'
 import {createContext, useEffect, useMemo, useReducer, useState, type KeyboardEvent} from 'react'
 import {botUsers} from '../page'
+import {DatePicker} from '@mui/x-date-pickers'
+import dayjs from 'dayjs'
+import {cor} from '../lib/stats'
 
 const defaultOpts: Options = {
   channel: '',
@@ -44,6 +47,7 @@ const defaultOpts: Options = {
   byCount: true,
   toPercent: true,
   showDetails: true,
+  streams: 'n100',
 }
 
 export function optionsToString(options: Options) {
@@ -160,7 +164,7 @@ export const OptionSetterContext = createContext((action: OptsAction) => {})
 export const DetailContext = createContext<Details>({lock: false, isUser: false, date: '', terms: []})
 export const DetailSetterContext = createContext((action: DetailActions) => {})
 
-export function View({data, params}: {data: ProcessedData; params: {[key: string]: string}}) {
+export function View({rawData, params}: {rawData: ChatData[]; params: {[key: string]: string}}) {
   const [opts, updateOpts] = useReducer(
     editOptions,
     (() => {
@@ -176,26 +180,141 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
         }
       })
       return initial
-    })()
+    })(),
   )
+  const [filterByDate, setFilterByDate] = useState(false)
+  const [nStreams, setNStreams] = useState(100)
+  const [since, setSince] = useState(dayjs().subtract(5, 'month'))
+  const [until, setUntil] = useState(dayjs())
+  useEffect(() => {
+    const time = opts.streams.startsWith('n') ? +opts.streams.substring(1) : opts.streams.split(',')
+    if (Array.isArray(time)) {
+      if (time[0]) {
+        setSince(dayjs(time[0], 'YYYYMMDD'))
+      }
+      if (time.length > 1) {
+        setSince(dayjs(time[1], 'YYYYMMDD'))
+      }
+    } else {
+      setNStreams(time)
+    }
+  }, [])
+  const data = useMemo(() => {
+    const time = opts.streams.startsWith('n') ? +opts.streams.substring(1) : opts.streams.split(',')
+    const byDate = Array.isArray(time)
+    setFilterByDate(byDate)
+    const since = byDate && time[0] ? dayjs(time[0], 'YYYYMMDD') : false
+    const until = byDate && time.length > 1 ? dayjs(time[1], 'YYYYMMDD') : false
+    const offset = byDate ? 0 : rawData.length - time - 1
+    const chatData = rawData.filter(
+      byDate ?
+        ({stream}) => {
+          let pass = true
+          if (since || until) {
+            const date = dayjs(stream.created_at)
+            if (since && date < since) pass = false
+            if (pass && until && date > until) pass = false
+          }
+          return pass
+        }
+      : (_, i) => {
+          return i > offset
+        },
+    )
+    const dates: Map<string, DateEntry> = new Map(
+      [...new Set(chatData.map(({stream}) => stream.date.format('YY/MM/DD')))].map((date, index) => [
+        date,
+        {words: 0, messages: 0, index, streams: []},
+      ]),
+    )
+    const nDates = dates.size
+    const termStats: {[key: string]: {count: number; cor: number}} = {}
+    const userCounts: {[key: string]: number} = {}
+    const terms: {[key: string]: Uint16Array} = {}
+    const users: {[key: string]: Uint16Array} = {}
+    const userTerms: {[key: string]: {[key: string]: number}} = {}
+    const termUsers: {[key: string]: {[key: string]: number}} = {}
+    chatData.forEach(s => {
+      const date = s.stream.date.format('YY/MM/DD')
+      const {words, messages, index, streams} = dates.get(date) as DateEntry
+      streams.push(s)
+      const chats = s.chats
+      let totalWords = words
+      let totalMessages = messages
+      Object.keys(chats).forEach(user => {
+        const d = chats[user]
+        d.isBot = user in botUsers
+        if (!d.isBot) {
+          d.badges.forEach(badge => {
+            if (badge.setID == 'bot-badge') {
+              d.isBot = true
+            }
+          })
+        }
+        if (d.isBot) botUsers[user] = true
+        if (!(user in users)) users[user] = new Uint16Array(nDates).fill(0)
+        totalMessages += d.nMessages
+        users[user][index] += d.nMessages
+        const u = d.terms
+        if (!(user in userTerms)) userTerms[user] = {}
+        if (!(user in userCounts)) userCounts[user] = 0
+        userCounts[user] += d.nMessages
+        const ut = userTerms[user]
+        Object.keys(u).forEach(term => {
+          if (term.includes(':e')) {
+            const parts = term.split(':', 2)
+            const emoteText = parts[0] ? parts[0] : ':' + parts[1]
+            u[emoteText] = u[term]
+            delete u[term]
+            term = emoteText
+          }
+          const termCount = u[term]
+          if (!(term in terms)) terms[term] = new Uint16Array(nDates).fill(0)
+          if (!(term in termUsers)) termUsers[term] = {}
+          if (!(term in termStats)) termStats[term] = {count: 0, cor: 0}
+          if (user in termUsers[term]) {
+            termUsers[term][user]++
+          } else {
+            termUsers[term][user] = 1
+          }
+          if (term in ut) {
+            ut[term]++
+          } else {
+            ut[term] = 1
+          }
+          totalWords += termCount
+          terms[term][index] += termCount
+          termStats[term].count += termCount
+        })
+      })
+      dates.set(date, {words: totalWords, messages: totalMessages, index, streams})
+    })
+    const nVector = Uint16Array.from({length: dates.size}, () => 0)
+    dates.forEach(({words, index}) => (nVector[index] = words))
+    const datesVector = Uint16Array.from({length: dates.size}, (_, i) => i)
+    Object.keys(termStats).forEach(term => {
+      termStats[term].cor = cor(datesVector, terms[term], nVector)
+    })
+    return {data: chatData, termStats, userCounts, dates, terms, users, userTerms, termUsers}
+  }, [rawData, opts.streams])
   const allUsers = useMemo(() => {
     return (opts.keepBots ? Object.keys(data.users) : Object.keys(data.users).filter(user => !(user in botUsers))).sort(
       (a, b) => {
         const counts = data.userCounts
         return counts[b] - counts[a]
-      }
+      },
     )
   }, [data.users, data.userCounts, opts.keepBots, opts.byCount])
   const allTerms = useMemo(() => {
     const stats = data.termStats
     return Object.keys(data.terms).sort(
-      opts.byCount
-        ? (a, b) => {
-            return stats[b].count - stats[a].count
-          }
-        : (a, b) => {
-            return Math.abs(stats[b].cor) - Math.abs(stats[a].cor)
-          }
+      opts.byCount ?
+        (a, b) => {
+          return stats[b].count - stats[a].count
+        }
+      : (a, b) => {
+          return Math.abs(stats[b].cor) - Math.abs(stats[a].cor)
+        },
     )
   }, [data.terms, data.termStats, opts.byCount])
   const [detailDisplay, updateDetails] = useReducer(editDetails, {lock: false, isUser: false, date: '', terms: []})
@@ -224,7 +343,7 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                       <MenuItem value="user_trends">User Trends</MenuItem>
                     </Select>
                   </FormControl>
-                  {opts.show !== 'wordcloud' ? (
+                  {opts.show !== 'wordcloud' ?
                     <>
                       <FormControlLabel
                         control={
@@ -258,8 +377,7 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                         labelPlacement="start"
                       />
                     </>
-                  ) : (
-                    <>
+                  : <>
                       <FormControlLabel
                         control={
                           <Switch
@@ -385,26 +503,103 @@ export function View({data, params}: {data: ProcessedData; params: {[key: string
                         </Stack>
                       </Stack>
                     </>
-                  )}
+                  }
                 </Stack>
-                <Stack spacing={1}>
+                <Stack spacing={2}>
                   <Typography variant="h6">Filter</Typography>
-                  <Tooltip title="If false, excludes bots from the user list." placement="right">
+                  <Stack spacing={1}>
+                    <Typography variant="caption">Users</Typography>
+                    <Tooltip title="If false, excludes bots from the user list." placement="right">
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={opts.keepBots}
+                            onChange={() => updateOpts({key: 'keepBots', value: !opts.keepBots})}
+                          ></Switch>
+                        }
+                        label={<Typography variant="caption">Include Bots</Typography>}
+                        labelPlacement="start"
+                      />
+                    </Tooltip>
+                    <TermSelect title="Users" allOptions={allUsers} selection={opts.users} update={updateOpts} />
+                  </Stack>
+                  <Stack spacing={1}>
+                    <Typography variant="caption">Streams</Typography>
                     <FormControlLabel
                       control={
                         <Switch
                           size="small"
-                          checked={opts.keepBots}
-                          onChange={() => updateOpts({key: 'keepBots', value: !opts.keepBots})}
+                          checked={filterByDate}
+                          onChange={() =>
+                            updateOpts({
+                              key: 'streams',
+                              value:
+                                opts.streams.startsWith('n') ?
+                                  `${since.format('YYYYMMDD')},${until.format('YYYYMMDD')}`
+                                : 'n' + nStreams,
+                            })
+                          }
                         ></Switch>
                       }
-                      label={<Typography variant="caption">Include Bots</Typography>}
+                      label={
+                        <Typography variant="caption">
+                          {filterByDate ? 'Streams by date' : 'Most recent streams'}
+                        </Typography>
+                      }
                       labelPlacement="start"
                     />
-                  </Tooltip>
-                  <TermSelect title="Users" allOptions={allUsers} selection={opts.users} update={updateOpts} />
+                    {filterByDate ?
+                      <Stack spacing={1}>
+                        <DatePicker
+                          label="Since"
+                          value={since}
+                          onChange={date => {
+                            if (date) {
+                              setSince(date)
+                              setTimeout(() => {
+                                updateOpts({
+                                  key: 'streams',
+                                  value: `${date.format('YYYYMMDD')},${until.format('YYYYMMDD')}`,
+                                })
+                              }, 100)
+                            }
+                          }}
+                        />
+                        <DatePicker
+                          label="Until"
+                          value={until}
+                          onChange={date => {
+                            if (date) {
+                              setUntil(date)
+                              setTimeout(() => {
+                                updateOpts({
+                                  key: 'streams',
+                                  value: `${since.format('YYYYMMDD')},${date.format('YYYYMMDD')}`,
+                                })
+                              }, 100)
+                            }
+                          }}
+                        />
+                      </Stack>
+                    : <TextField
+                        label="Number of Streams"
+                        type="number"
+                        size="small"
+                        fullWidth
+                        value={nStreams}
+                        slotProps={{htmlInput: {min: 1, max: 999, step: 1}}}
+                        onChange={e => {
+                          const value = +e.target.value
+                          setNStreams(value)
+                          updateOpts({key: 'streams', value: 'n' + value})
+                        }}
+                      />
+                    }
+                  </Stack>
                 </Stack>
                 <Stack spacing={1}>
+                  <Typography variant="h6">Style</Typography>
                   <FormControl variant="outlined" fullWidth size="small">
                     <InputLabel id="palette">Color Palette</InputLabel>
                     <Select

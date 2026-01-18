@@ -11,7 +11,7 @@ export function cosine(x: Readonly<Uint16Array>, y: Readonly<Uint16Array>) {
   return crossprod && x_sq && y_sq ? crossprod / Math.sqrt(x_sq) / Math.sqrt(y_sq) : 0
 }
 
-export function cor(x: Readonly<Uint16Array>, y: Readonly<Uint16Array>) {
+export function cor(x: Readonly<Uint16Array>, y: Readonly<Uint16Array>, totals: Readonly<Uint16Array>) {
   const n = x.length
   let crossprod = 0
   let x_sum = 0
@@ -19,8 +19,9 @@ export function cor(x: Readonly<Uint16Array>, y: Readonly<Uint16Array>) {
   let y_sum = 0
   let y_sq = 0
   for (let i = n; i--; ) {
+    const total = totals[i]
     const xi = x[i]
-    const yi = y[i]
+    const yi = total ? y[i] / total : 0
     crossprod += xi * yi
     x_sum += xi
     x_sq += Math.pow(xi, 2)
@@ -30,10 +31,10 @@ export function cor(x: Readonly<Uint16Array>, y: Readonly<Uint16Array>) {
   x_sum /= n
   y_sum /= n
   const res =
-    crossprod && x_sq && y_sq
-      ? (crossprod / n - x_sum * y_sum) /
-        Math.sqrt(x_sq / n - Math.pow(x_sum, 2)) /
-        Math.sqrt(y_sq / n - Math.pow(y_sum, 2))
-      : 0
+    crossprod && x_sq && y_sq ?
+      (crossprod / n - x_sum * y_sum) /
+      Math.sqrt(x_sq / n - Math.pow(x_sum, 2)) /
+      Math.sqrt(y_sq / n - Math.pow(y_sum, 2))
+    : 0
   return isNaN(res) ? 0 : res
 }

@@ -10,6 +10,8 @@
     "@emotion/styled": "latest",
     "@mui/icons-material": "latest",
     "@mui/material": "latest",
+    "@mui/x-date-pickers": "latest",
+    "dayjs": "latest",
     "echarts": "latest",
     "echarts-wordcloud": "latest",
     "next": "latest",

@@ -19,7 +19,9 @@ REPROCESS = False
 
 def process_vod(path: str):
     new_path = re.sub(" -.*- ", "_", path)
-    if (path != new_path) and isdir(new_path):
+    if not isfile(path + "verbose_chat.json.gz") or (
+        (path != new_path) and isdir(new_path)
+    ):
         rmtree(path)
         return
     if isfile(path + "readable_chat.txt"):
@@ -122,15 +124,17 @@ if __name__ == "__main__":
         processed_file = f"public/channel/{channel}.json.gz"
         vod_paths = listdir(channel_path)
         state = hashlib.md5("".join(vod_paths).encode()).hexdigest()
-        if not channel in states or state != states[channel]:
+        if REPROCESS or not channel in states or state != states[channel]:
             with gzip.open(processed_file, "wb") as final_file:
+                vods = listdir(channel_path)
+                vods.sort()
                 final_file.write(
                     json.dumps(
                         list(
                             processed
                             for processed in [
                                 process_vod(f"{channel_path}{vod_path}/")
-                                for vod_path in listdir(channel_path)
+                                for vod_path in vods
                             ]
                             if processed
                         )
