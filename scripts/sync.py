@@ -19,7 +19,9 @@ REPROCESS = False
 
 def process_vod(path: str):
     new_path = re.sub(" -.*- ", "_", path)
-    if not isfile(path + "verbose_chat.json.gz") or (
+    initial_chat_file = path + "verbose_chat.json"
+    final_chat_file = path + "verbose_chat.json.gz"
+    if (not isfile(initial_chat_file) and not isfile(final_chat_file)) or (
         (path != new_path) and isdir(new_path)
     ):
         rmtree(path)
@@ -28,14 +30,14 @@ def process_vod(path: str):
         unlink(path + "readable_chat.txt")
     out_file = path + "processed_chat.json.gz"
     if not REPROCESS and isfile(out_file):
-        if isfile(path + "verbose_chat.json"):
-            unlink(path + "verbose_chat.json")
+        if isfile(initial_chat_file):
+            unlink(initial_chat_file)
         with gzip.open(out_file, "rb") as file:
             return json.loads(file.read())
     users = {}
-    uncompressed = isfile(path + "verbose_chat.json")
+    uncompressed = isfile(initial_chat_file)
     if uncompressed:
-        with open(path + "verbose_chat.json", encoding="utf-8") as file:
+        with open(initial_chat_file, encoding="utf-8") as file:
             chat = json.load(file)
     else:
         with gzip.open(path + "verbose_chat.json.gz") as file:
