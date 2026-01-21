@@ -596,6 +596,15 @@ export function View({rawData, params}: {rawData: ChatData[]; params: {[key: str
                         }}
                       />
                     }
+                    <Stack>
+                      <Typography variant="caption" sx={{textAlign: 'right'}}>
+                        {data.data.length} streams between
+                      </Typography>
+                      <Typography variant="caption" sx={{textAlign: 'right'}}>
+                        {data.data[0].stream.date.format('YY/MM/DD')} and{' '}
+                        {data.data[data.data.length - 1].stream.date.format('YY/MM/DD')}
+                      </Typography>
+                    </Stack>
                   </Stack>
                 </Stack>
                 <Stack spacing={1}>
@@ -636,7 +645,7 @@ export function View({rawData, params}: {rawData: ChatData[]; params: {[key: str
                 window.location.replace(window.location.origin + window.location.pathname + '?channel=' + opts.channel)
               }
               variant="contained"
-              color="error"
+              sx={{color: '#fff', backgroundColor: '#580000'}}
               fullWidth
             >
               Reset
