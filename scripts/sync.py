@@ -147,4 +147,4 @@ if __name__ == "__main__":
                 "".join(listdir(channel_path)).encode()
             ).hexdigest()
     with open(states_file, "w", encoding="utf-8") as file:
-        json.dump(states, file)
+        json.dump(states, file, indent=2)
